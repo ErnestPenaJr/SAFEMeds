@@ -134,6 +134,12 @@ export function useAuthProvider(): AuthContextType {
         }
       }
 
+      // Send the verification email after successful sign-up
+      const { error: emailError } = await sendVerificationCode(email, 'verification');
+      if (emailError) {
+        return { error: emailError };
+      }
+
       return {};
     } catch (error) {
       return { error: 'An unexpected error occurred' };

@@ -40,39 +40,7 @@ export function UserManagementModal({ visible, onClose, user, mode }: UserManage
   ];
 
   const validateForm = () => {
-    if (!formData.email.trim()) {
-      setError('Email is required');
-      return false;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email.trim())) {
-      setError('Please enter a valid email address');
-      return false;
-    }
-
-    if (mode === 'create') {
-      if (!formData.password) {
-        setError('Password is required');
-        return false;
-      }
-
-      if (formData.password.length < 6) {
-        setError('Password must be at least 6 characters long');
-        return false;
-      }
-
-      if (formData.password !== formData.confirmPassword) {
-        setError('Passwords do not match');
-        return false;
-      }
-    }
-
-    if (!formData.fullName.trim()) {
-      setError('Full name is required');
-      return false;
-    }
-
+    // All validation is temporarily disabled per user request.
     return true;
   };
 
