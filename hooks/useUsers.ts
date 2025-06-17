@@ -29,13 +29,10 @@ export interface UserStats {
 }
 
 export function useUsers() {
-  const { user: currentUser } = useAuth();
+  const { isAdmin } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Check if current user has admin privileges
-  const isAdmin = currentUser?.user_metadata?.role === 'admin';
 
   const searchUsers = async (query: string = '', filters: any = {}) => {
     if (!isAdmin) {
@@ -48,16 +45,9 @@ export function useUsers() {
 
       let queryBuilder = supabase
         .from('user_profiles')
-        .select(`
-          *,
-          auth.users!inner(
-            id,
-            email,
-            last_sign_in_at,
-            created_at,
-            user_metadata
-          )
-        `);
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       // Apply search filter
       if (query.trim()) {
@@ -71,14 +61,7 @@ export function useUsers() {
         queryBuilder = queryBuilder.eq('role', filters.role);
       }
 
-      // Apply status filter
-      if (filters.is_active !== undefined) {
-        queryBuilder = queryBuilder.eq('is_active', filters.is_active);
-      }
-
-      const { data, error } = await queryBuilder
-        .order('created_at', { ascending: false })
-        .limit(100);
+      const { data, error } = await queryBuilder;
 
       if (error) throw error;
 
@@ -120,16 +103,7 @@ export function useUsers() {
     try {
       const { data, error } = await supabase
         .from('user_profiles')
-        .select(`
-          *,
-          auth.users!inner(
-            id,
-            email,
-            last_sign_in_at,
-            created_at,
-            user_metadata
-          )
-        `)
+        .select('*')
         .eq('id', userId)
         .single();
 
@@ -171,14 +145,14 @@ export function useUsers() {
         .from('user_profiles')
         .select('*', { count: 'exact', head: true });
 
-      // Get active users (signed in within last 30 days)
+      // Get active users (created within last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
       const { count: active } = await supabase
         .from('user_profiles')
         .select('*', { count: 'exact', head: true })
-        .gte('last_sign_in_at', thirtyDaysAgo.toISOString());
+        .gte('created_at', thirtyDaysAgo.toISOString());
 
       // Get admin users
       const { count: admin } = await supabase
@@ -280,14 +254,6 @@ export function useUsers() {
 
       if (profileError) throw profileError;
 
-      // Then delete from auth.users (requires admin privileges)
-      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-      
-      if (authError) {
-        console.warn('Could not delete auth user:', authError);
-        // Continue anyway as profile is deleted
-      }
-
       // Update local state
       setUsers(prev => prev.filter(user => user.id !== userId));
     } catch (err) {
@@ -307,15 +273,10 @@ export function useUsers() {
     }
 
     try {
-      // Create user in auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      // Create user via Supabase auth signup
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: userData.full_name,
-          role: userData.role || 'user',
-        }
       });
 
       if (authError) throw authError;

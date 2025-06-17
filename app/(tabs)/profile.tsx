@@ -1,17 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Shield, Bell, CircleHelp as HelpCircle, Settings, FileText, Heart, LogOut, CreditCard as Edit, Mail, Zap } from 'lucide-react-native';
+import { User, Shield, Bell, CircleHelp as HelpCircle, Settings, FileText, Heart, LogOut, CreditCard as Edit, Mail, Zap, Crown, Calendar, ExternalLink } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
+import { useStripe } from '@/hooks/useStripe';
+import { stripeProducts } from '@/src/stripe-config';
 import { EditProfileModal } from '@/components/EditProfileModal';
 import { EmailTestModal } from '@/components/EmailTestModal';
 import { ResendTestModal } from '@/components/ResendTestModal';
+import { SubscriptionCard } from '@/components/SubscriptionCard';
 
 export default function ProfileScreen() {
   const { user, profile, signOut } = useAuth();
+  const { createCheckoutSession, getSubscription, isSubscriptionActive, loading } = useStripe();
   const [showEditModal, setShowEditModal] = useState(false);
   const [showEmailTestModal, setShowEmailTestModal] = useState(false);
   const [showResendTestModal, setShowResendTestModal] = useState(false);
+  const [subscription, setSubscription] = useState(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
+
+  useEffect(() => {
+    loadSubscription();
+  }, []);
+
+  const loadSubscription = async () => {
+    try {
+      const sub = await getSubscription();
+      setSubscription(sub);
+    } catch (error) {
+      console.error('Error loading subscription:', error);
+    } finally {
+      setLoadingSubscription(false);
+    }
+  };
+
+  const handleUpgrade = async () => {
+    const product = stripeProducts[0];
+    if (!product) {
+      Alert.alert('Error', 'No subscription plans available');
+      return;
+    }
+
+    try {
+      const successUrl = `${window.location.origin}/(tabs)/profile`;
+      const cancelUrl = `${window.location.origin}/(tabs)/profile`;
+      
+      const checkoutUrl = await createCheckoutSession(product, successUrl, cancelUrl);
+      
+      if (checkoutUrl) {
+        window.open(checkoutUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      Alert.alert('Error', 'Failed to start checkout process. Please try again.');
+    }
+  };
 
   const handleSettingPress = (setting: string) => {
     Alert.alert('Feature Coming Soon', `${setting} feature will be available in a future update.`);
@@ -55,6 +98,13 @@ export default function ProfileScreen() {
     setShowResendTestModal(true);
   };
 
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    return new Date(timestamp * 1000).toLocaleDateString();
+  };
+
+  const isActive = isSubscriptionActive(subscription);
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -83,6 +133,95 @@ export default function ProfileScreen() {
               <Edit size={20} color="#2563EB" />
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Subscription Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Subscription</Text>
+          
+          {loadingSubscription ? (
+            <View style={styles.subscriptionCard}>
+              <Text style={styles.loadingText}>Loading subscription...</Text>
+            </View>
+          ) : (
+            <View style={[styles.subscriptionCard, isActive && styles.activeSubscriptionCard]}>
+              <View style={styles.subscriptionHeader}>
+                <View style={styles.subscriptionTitleContainer}>
+                  <Crown size={20} color={isActive ? '#10B981' : '#64748B'} />
+                  <Text style={[styles.subscriptionTitle, isActive && styles.activeSubscriptionTitle]}>
+                    {isActive ? 'S.A.F.E. Meds Premium' : 'S.A.F.E. Meds Free'}
+                  </Text>
+                </View>
+                
+                {subscription && (
+                  <View style={[
+                    styles.statusBadge,
+                    { backgroundColor: `${isActive ? '#10B981' : '#64748B'}20` }
+                  ]}>
+                    <Text style={[
+                      styles.statusText,
+                      { color: isActive ? '#10B981' : '#64748B' }
+                    ]}>
+                      {isActive ? 'Active' : subscription.subscription_status}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {isActive && subscription ? (
+                <View style={styles.subscriptionDetails}>
+                  {subscription.current_period_end && (
+                    <View style={styles.detailRow}>
+                      <Calendar size={16} color="#64748B" />
+                      <Text style={styles.detailText}>
+                        Renews on {formatDate(subscription.current_period_end)}
+                      </Text>
+                    </View>
+                  )}
+
+                  {subscription.payment_method_brand && subscription.payment_method_last4 && (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.paymentMethod}>
+                        {subscription.payment_method_brand.toUpperCase()} •••• {subscription.payment_method_last4}
+                      </Text>
+                    </View>
+                  )}
+
+                  {subscription.cancel_at_period_end && (
+                    <View style={styles.cancelNotice}>
+                      <Text style={styles.cancelText}>
+                        ⚠️ Subscription will cancel at period end
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <View style={styles.upgradeSection}>
+                  <Text style={styles.upgradeText}>
+                    Upgrade to unlock premium medication safety features
+                  </Text>
+                  
+                  <View style={styles.features}>
+                    <Text style={styles.featureItem}>• Advanced drug interaction checking</Text>
+                    <Text style={styles.featureItem}>• Personalized medication schedules</Text>
+                    <Text style={styles.featureItem}>• Detailed health reports</Text>
+                    <Text style={styles.featureItem}>• Priority support</Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.upgradeButton, loading && styles.upgradeButtonDisabled]}
+                    onPress={handleUpgrade}
+                    disabled={loading}
+                  >
+                    <ExternalLink size={16} color="#FFFFFF" />
+                    <Text style={styles.upgradeButtonText}>
+                      {loading ? 'Processing...' : 'Upgrade to Premium'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -327,6 +466,126 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     color: '#1E293B',
     marginBottom: 12,
+  },
+  subscriptionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  activeSubscriptionCard: {
+    borderColor: '#10B981',
+    backgroundColor: '#F0FDF4',
+  },
+  loadingText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#64748B',
+    textAlign: 'center',
+    paddingVertical: 20,
+  },
+  subscriptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  subscriptionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  subscriptionTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: '#1E293B',
+    marginLeft: 8,
+  },
+  activeSubscriptionTitle: {
+    color: '#059669',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  statusText: {
+    fontSize: 12,
+    fontFamily: 'Inter-SemiBold',
+    textTransform: 'capitalize',
+  },
+  subscriptionDetails: {
+    gap: 12,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  detailText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
+    marginLeft: 8,
+  },
+  paymentMethod: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#64748B',
+  },
+  cancelNotice: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#F59E0B',
+  },
+  cancelText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#D97706',
+  },
+  upgradeSection: {
+    alignItems: 'center',
+  },
+  upgradeText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  features: {
+    alignSelf: 'stretch',
+    marginBottom: 20,
+  },
+  featureItem: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  upgradeButton: {
+    backgroundColor: '#2563EB',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  upgradeButtonDisabled: {
+    opacity: 0.6,
+  },
+  upgradeButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFFFFF',
   },
   settingItem: {
     flexDirection: 'row',

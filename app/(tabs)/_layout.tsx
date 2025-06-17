@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
-import { Chrome as Home, Pill, Calendar, User, FileText, Crown, Users } from 'lucide-react-native';
+import { Chrome as Home, Pill, Calendar, User, FileText, Users } from 'lucide-react-native';
 import { AuthGuard } from '@/components/AuthGuard';
 import { OfflineNotice } from '@/components/OfflineNotice';
 import { View } from 'react-native';
@@ -9,10 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 export default function TabLayout() {
   const { isDesktop } = useResponsive();
-  const { user } = useAuth();
-  
-  // Check if user has admin privileges
-  const isAdmin = user?.user_metadata?.role === 'admin';
+  const { isAdmin } = useAuth();
 
   return (
     <AuthGuard>
@@ -74,15 +71,6 @@ export default function TabLayout() {
               title: 'Reports',
               tabBarIcon: ({ size, color }) => (
                 <FileText size={isDesktop ? 24 : size} color={color} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="subscription"
-            options={{
-              title: 'Premium',
-              tabBarIcon: ({ size, color }) => (
-                <Crown size={isDesktop ? 24 : size} color={color} />
               ),
             }}
           />

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Calendar, Clock, Pill, ChevronLeft, ChevronRight, Share2 } from 'lucide-react-native';
+import { Calendar, Clock, Pill, ChevronLeft, ChevronRight, Share2, Zap, Brain } from 'lucide-react-native';
 import { useMedications } from '@/hooks/useMedications';
 import { ShareScheduleModal } from '@/components/ShareScheduleModal';
+import { SmartScheduleModal } from '@/components/SmartScheduleModal';
 import { useResponsive, getResponsiveValue } from '@/hooks/useResponsive';
 import { ResponsiveContainer } from '@/components/ResponsiveContainer';
 
@@ -11,6 +12,7 @@ export default function ScheduleScreen() {
   const { medications, generateSchedule } = useMedications();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showSmartScheduleModal, setShowSmartScheduleModal] = useState(false);
   const screenSize = useResponsive();
   
   const schedule = generateSchedule(selectedDate);
@@ -67,12 +69,23 @@ export default function ScheduleScreen() {
       <ResponsiveContainer maxWidth={1400}>
         <View style={[styles.header, screenSize.isDesktop && styles.headerDesktop]}>
           <Text style={[styles.title, screenSize.isDesktop && styles.titleDesktop]}>Medication Schedule</Text>
-          <TouchableOpacity
-            style={[styles.shareButton, screenSize.isDesktop && styles.shareButtonDesktop]}
-            onPress={() => setShowShareModal(true)}
-          >
-            <Share2 size={screenSize.isDesktop ? 24 : 20} color="#2563EB" />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={[styles.smartButton, screenSize.isDesktop && styles.smartButtonDesktop]}
+              onPress={() => setShowSmartScheduleModal(true)}
+            >
+              <Brain size={screenSize.isDesktop ? 24 : 20} color="#FFFFFF" />
+              {screenSize.isDesktop && (
+                <Text style={styles.smartButtonText}>Smart Schedule</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.shareButton, screenSize.isDesktop && styles.shareButtonDesktop]}
+              onPress={() => setShowShareModal(true)}
+            >
+              <Share2 size={screenSize.isDesktop ? 24 : 20} color="#2563EB" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={[styles.dateNavigation, screenSize.isDesktop && styles.dateNavigationDesktop]}>
@@ -94,6 +107,28 @@ export default function ScheduleScreen() {
             <ChevronRight size={screenSize.isDesktop ? 24 : 20} color="#2563EB" />
           </TouchableOpacity>
         </View>
+
+        {/* Smart Schedule CTA */}
+        {medications.length > 1 && (
+          <View style={[styles.smartScheduleCTA, screenSize.isDesktop && styles.smartScheduleCTADesktop]}>
+            <View style={styles.ctaContent}>
+              <Brain size={24} color="#2563EB" />
+              <View style={styles.ctaText}>
+                <Text style={styles.ctaTitle}>Get Your Optimal Schedule</Text>
+                <Text style={styles.ctaSubtitle}>
+                  AI-powered scheduling that considers drug interactions, food timing, and absorption
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.ctaButton}
+              onPress={() => setShowSmartScheduleModal(true)}
+            >
+              <Zap size={16} color="#FFFFFF" />
+              <Text style={styles.ctaButtonText}>Generate</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {schedule.length === 0 ? (
@@ -120,8 +155,7 @@ export default function ScheduleScreen() {
                     styles.scheduleCard,
                     screenSize.isDesktop && styles.scheduleCardDesktop,
                     screenSize.isDesktop && {
-                      width: `${100 / scheduleColumns - 2}%`,
-                      marginRight: '2%',
+                      width: `${100 / scheduleColumns}%`,
                     }
                   ]}
                 >
@@ -201,6 +235,11 @@ export default function ScheduleScreen() {
           visible={showShareModal}
           onClose={() => setShowShareModal(false)}
         />
+
+        <SmartScheduleModal
+          visible={showSmartScheduleModal}
+          onClose={() => setShowSmartScheduleModal(false)}
+        />
       </ResponsiveContainer>
     </SafeAreaView>
   );
@@ -229,6 +268,32 @@ const styles = StyleSheet.create({
   },
   titleDesktop: {
     fontSize: 32,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  smartButton: {
+    backgroundColor: '#2563EB',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  smartButtonDesktop: {
+    width: 'auto',
+    height: 48,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  smartButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFFFFF',
   },
   shareButton: {
     backgroundColor: '#EFF6FF',
@@ -288,6 +353,59 @@ const styles = StyleSheet.create({
   },
   dateTextDesktop: {
     fontSize: 20,
+  },
+  smartScheduleCTA: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  smartScheduleCTADesktop: {
+    marginHorizontal: 0,
+    marginBottom: 32,
+    borderRadius: 20,
+    padding: 24,
+  },
+  ctaContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  ctaText: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  ctaTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  ctaSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#64748B',
+    lineHeight: 20,
+  },
+  ctaButton: {
+    backgroundColor: '#2563EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  ctaButtonText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFFFFF',
   },
   scrollView: {
     flex: 1,

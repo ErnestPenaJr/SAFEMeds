@@ -140,8 +140,7 @@ export default function MedicationsScreen() {
                       styles.medicationCard,
                       screenSize.isDesktop && styles.medicationCardDesktop,
                       screenSize.isDesktop && { 
-                        width: `${100 / medicationColumns - 2}%`,
-                        marginRight: '2%',
+                        width: `${100 / medicationColumns}%`,
                       }
                     ]}
                   >

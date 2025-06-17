@@ -9,6 +9,7 @@ export interface UserProfile {
   full_name?: string;
   created_at: string;
   updated_at: string;
+  role?: 'user' | 'premium' | 'moderator' | 'admin';
 }
 
 export interface AuthContextType {
@@ -16,6 +17,7 @@ export interface AuthContextType {
   profile: UserProfile | null;
   session: Session | null;
   loading: boolean;
+  isAdmin: boolean;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error?: string }>;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
@@ -26,6 +28,9 @@ export interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Define the admin UID - your specific account
+const ADMIN_UID = 'e89a8274-4d7c-4c57-b8a0-243ab71a0960';
 
 export function useAuth() {
   const context = useContext(AuthContext);
@@ -40,6 +45,9 @@ export function useAuthProvider(): AuthContextType {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Check if current user is admin based on UID
+  const isAdmin = user?.id === ADMIN_UID;
 
   useEffect(() => {
     // Get initial session
@@ -94,7 +102,22 @@ export function useAuthProvider(): AuthContextType {
 
       // Check if data array has any results
       if (data && data.length > 0) {
-        setProfile(data[0]);
+        let profileData = data[0];
+        
+        // Automatically set admin role if this is the admin UID
+        if (userId === ADMIN_UID && profileData.role !== 'admin') {
+          console.log('Setting admin role for admin UID');
+          const { error: updateError } = await supabase
+            .from('user_profiles')
+            .update({ role: 'admin' })
+            .eq('id', userId);
+          
+          if (!updateError) {
+            profileData = { ...profileData, role: 'admin' };
+          }
+        }
+        
+        setProfile(profileData);
       } else {
         setProfile(null);
       }
@@ -121,23 +144,23 @@ export function useAuthProvider(): AuthContextType {
 
       // Create user profile
       if (data.user) {
+        // Determine role based on UID
+        const role = data.user.id === ADMIN_UID ? 'admin' : 'user';
+        
         const { error: profileError } = await supabase
           .from('user_profiles')
           .insert({
             id: data.user.id,
             email: data.user.email!,
             full_name: fullName,
+            role: role,
           });
 
         if (profileError) {
           console.error('Error creating profile:', profileError);
+        } else {
+          console.log(`Created profile with role: ${role} for UID: ${data.user.id}`);
         }
-      }
-
-      // Send the verification email after successful sign-up
-      const { error: emailError } = await sendVerificationCode(email, 'verification');
-      if (emailError) {
-        return { error: emailError };
       }
 
       return {};
@@ -289,6 +312,11 @@ export function useAuthProvider(): AuthContextType {
         return { error: 'Not authenticated' };
       }
 
+      // Prevent role changes unless user is admin
+      if (updates.role && !isAdmin) {
+        delete updates.role;
+      }
+
       const { error } = await supabase
         .from('user_profiles')
         .update({
@@ -314,6 +342,7 @@ export function useAuthProvider(): AuthContextType {
     profile,
     session,
     loading,
+    isAdmin,
     signUp,
     signIn,
     signOut,

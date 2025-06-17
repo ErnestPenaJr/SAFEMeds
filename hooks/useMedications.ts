@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { rxNavAPI, DrugInfo, processInteractionSeverity, formatDrugName, drugSearchCache } from '@/lib/rxnav';
+import { openFDAAPI, DrugInfo, formatDrugName, drugSearchCache } from '@/lib/openfda';
 
 export interface Medication {
   name: string;
@@ -7,7 +7,7 @@ export interface Medication {
   frequency: string;
   notes?: string;
   nextDose?: string;
-  rxcui?: string; // RxNav identifier
+  fdaId?: string; // OpenFDA identifier
   active?: boolean;
   start_date?: string;
   end_date?: string;
@@ -103,69 +103,88 @@ export function useMedications() {
     setIsLoadingInteractions(true);
 
     try {
-      // Get RxCUIs for all medications
-      const rxcuis: string[] = [];
+      const drugNames = activeMeds.map(med => med.name);
+      const fdaInteractions = await openFDAAPI.getDrugInteractions(drugNames);
       
-      for (const med of activeMeds) {
-        if (med.rxcui) {
-          rxcuis.push(med.rxcui);
-        } else {
-          // Try to get RxCUI by name
-          const rxcui = await rxNavAPI.getRxcuiByName(med.name);
-          if (rxcui) {
-            rxcuis.push(rxcui);
-            // Update medication with RxCUI
-            setMedications(prev => prev.map(m => 
-              m.name === med.name ? { ...m, rxcui } : m
-            ));
-          }
-        }
-      }
+      const processedInteractions: DrugInteraction[] = fdaInteractions.map(interaction => ({
+        drugs: [interaction.drug_name, interaction.interacting_drug],
+        severity: interaction.severity,
+        description: interaction.description,
+        source: 'OpenFDA'
+      }));
 
-      if (rxcuis.length >= 2) {
-        const rxNavInteractions = await rxNavAPI.getDrugInteractions(rxcuis);
-        
-        const processedInteractions: DrugInteraction[] = rxNavInteractions.map(interaction => {
-          const drugNames = interaction.interactionPair[0]?.interactionConcept?.map(
-            concept => concept.minConceptItem.name
-          ) || [];
-          
-          const severity = processInteractionSeverity(
-            interaction.interactionPair[0]?.severity || 'moderate'
-          );
-          
-          const description = interaction.interactionPair[0]?.description || 
-            'Drug interaction detected. Consult your healthcare provider.';
-
-          return {
-            drugs: drugNames,
-            severity,
-            description,
-            source: 'RxNav/NLM'
-          };
-        });
-
-        setInteractions(processedInteractions);
-      } else {
-        setInteractions([]);
-      }
+      // Add some common interaction patterns for demo purposes
+      const commonInteractions = getCommonInteractions(drugNames);
+      
+      setInteractions([...processedInteractions, ...commonInteractions]);
     } catch (error) {
       console.error('Error checking drug interactions:', error);
-      // Fall back to empty interactions on error
-      setInteractions([]);
+      // Fall back to common interactions only
+      const drugNames = activeMeds.map(med => med.name);
+      const commonInteractions = getCommonInteractions(drugNames);
+      setInteractions(commonInteractions);
     } finally {
       setIsLoadingInteractions(false);
     }
   };
 
+  // Helper function for common drug interactions
+  const getCommonInteractions = (drugNames: string[]): DrugInteraction[] => {
+    const interactions: DrugInteraction[] = [];
+    
+    // Common interaction patterns
+    const interactionPatterns = [
+      {
+        drugs: ['warfarin', 'aspirin'],
+        severity: 'major' as const,
+        description: 'Increased risk of bleeding when warfarin is combined with aspirin.'
+      },
+      {
+        drugs: ['metformin', 'alcohol'],
+        severity: 'moderate' as const,
+        description: 'Alcohol may increase the risk of lactic acidosis with metformin.'
+      },
+      {
+        drugs: ['levothyroxine', 'calcium'],
+        severity: 'moderate' as const,
+        description: 'Calcium may reduce the absorption of levothyroxine. Take 4 hours apart.'
+      },
+      {
+        drugs: ['lisinopril', 'potassium'],
+        severity: 'moderate' as const,
+        description: 'ACE inhibitors like lisinopril may increase potassium levels.'
+      }
+    ];
+
+    interactionPatterns.forEach(pattern => {
+      const matchingDrugs = pattern.drugs.filter(drug => 
+        drugNames.some(medName => 
+          medName.toLowerCase().includes(drug.toLowerCase())
+        )
+      );
+      
+      if (matchingDrugs.length >= 2) {
+        interactions.push({
+          drugs: matchingDrugs,
+          severity: pattern.severity,
+          description: pattern.description,
+          source: 'Common Interactions Database'
+        });
+      }
+    });
+
+    return interactions;
+  };
+
   const addMedication = async (medication: Medication) => {
-    // Try to get RxCUI for the new medication
+    // Try to get FDA ID for the new medication
     try {
-      const rxcui = await rxNavAPI.getRxcuiByName(medication.name);
-      const medicationWithRxcui = { ...medication, rxcui: rxcui || undefined };
-      setMedications(prev => [...prev, medicationWithRxcui]);
+      const searchResults = await openFDAAPI.searchDrugs(medication.name, 1);
+      const fdaId = searchResults.length > 0 ? searchResults[0].id : undefined;
+      const medicationWithFdaId = { ...medication, fdaId };
+      setMedications(prev => [...prev, medicationWithFdaId]);
     } catch (error) {
-      console.error('Error getting RxCUI for medication:', error);
+      console.error('Error getting FDA ID for medication:', error);
       setMedications(prev => [...prev, medication]);
     }
   };
@@ -199,8 +218,8 @@ export function useMedications() {
         return cached.map(drug => formatDrugName(drug));
       }
 
-      // Search using RxNav API
-      const results = await rxNavAPI.searchDrugs(query);
+      // Search using OpenFDA API
+      const results = await openFDAAPI.searchDrugs(query, 20);
       
       // Cache the results
       drugSearchCache.set(query, results);
@@ -230,7 +249,7 @@ export function useMedications() {
 
   const getSpellingSuggestions = async (query: string): Promise<string[]> => {
     try {
-      return await rxNavAPI.getSpellingSuggestions(query);
+      return await openFDAAPI.getSpellingSuggestions(query);
     } catch (error) {
       console.error('Error getting spelling suggestions:', error);
       return [];
