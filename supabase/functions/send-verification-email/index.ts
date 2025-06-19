@@ -13,6 +13,7 @@ const MAILGUN_API_KEY = Deno.env.get('MAILGUN_API_KEY')
 const MAILGUN_DOMAIN = Deno.env.get('MAILGUN_DOMAIN')
 const FROM_EMAIL = Deno.env.get('FROM_EMAIL') || 'noreply@safemeds.app'
 const FROM_NAME = Deno.env.get('FROM_NAME') || 'S.A.F.E. Meds'
+const ENVIRONMENT = Deno.env.get('ENVIRONMENT') || 'development'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -22,9 +23,25 @@ serve(async (req) => {
   try {
     const { email, code, type = 'verification' } = await req.json()
 
+    console.log(`Email request received: ${email}, type: ${type}, environment: ${ENVIRONMENT}`)
+
     if (!email || !code) {
+      console.error('Missing email or code in request')
       return new Response(
         JSON.stringify({ error: 'Email and code are required' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      console.error('Invalid email format:', email)
+      return new Response(
+        JSON.stringify({ error: 'Invalid email format' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -42,6 +59,8 @@ serve(async (req) => {
     let emailSent = false
     let error = null
 
+    console.log(`Attempting to send email via ${EMAIL_SERVICE}`)
+
     // Try to send email using configured service
     switch (EMAIL_SERVICE) {
       case 'resend':
@@ -54,27 +73,35 @@ serve(async (req) => {
         emailSent = await sendWithMailgun(email, subject, htmlContent, textContent)
         break
       default:
-        error = 'No email service configured'
+        error = `Unsupported email service: ${EMAIL_SERVICE}`
+        console.error(error)
     }
 
     if (!emailSent && !error) {
-      error = 'Failed to send email'
+      error = 'Failed to send email - unknown error'
     }
 
-    // For development, log the email content
-    const isDevelopment = Deno.env.get('ENVIRONMENT') === 'development'
-    if (isDevelopment) {
-      console.log(`Email would be sent to: ${email}`)
+    // For development, always log the email content
+    if (ENVIRONMENT === 'development') {
+      console.log(`=== DEVELOPMENT EMAIL LOG ===`)
+      console.log(`To: ${email}`)
       console.log(`Subject: ${subject}`)
       console.log(`Code: ${code}`)
+      console.log(`Email sent: ${emailSent}`)
+      console.log(`Error: ${error || 'None'}`)
+      console.log(`=============================`)
     }
 
+    const response = {
+      success: emailSent,
+      message: emailSent ? 'Verification code sent successfully' : error,
+      ...(ENVIRONMENT === 'development' && { code }) // Only include code in development
+    }
+
+    console.log('Response:', response)
+
     return new Response(
-      JSON.stringify({ 
-        success: emailSent,
-        message: emailSent ? 'Verification code sent successfully' : error,
-        ...(isDevelopment && { code }) // Only include code in development
-      }),
+      JSON.stringify(response),
       { 
         status: emailSent ? 200 : 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -84,7 +111,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Email sending error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || 'Internal server error',
+        details: ENVIRONMENT === 'development' ? error.stack : undefined
+      }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -101,6 +131,8 @@ async function sendWithResend(to: string, subject: string, html: string, text: s
   }
 
   try {
+    console.log('Sending email via Resend API...')
+    
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -116,12 +148,16 @@ async function sendWithResend(to: string, subject: string, html: string, text: s
       }),
     })
 
+    console.log('Resend API response status:', response.status)
+
     if (!response.ok) {
       const errorData = await response.text()
       console.error('Resend API error:', errorData)
       return false
     }
 
+    const responseData = await response.json()
+    console.log('Resend API success:', responseData)
     return true
   } catch (error) {
     console.error('Resend sending error:', error)
@@ -137,6 +173,8 @@ async function sendWithSendGrid(to: string, subject: string, html: string, text:
   }
 
   try {
+    console.log('Sending email via SendGrid API...')
+    
     const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: {
@@ -165,12 +203,15 @@ async function sendWithSendGrid(to: string, subject: string, html: string, text:
       }),
     })
 
+    console.log('SendGrid API response status:', response.status)
+
     if (!response.ok) {
       const errorData = await response.text()
       console.error('SendGrid API error:', errorData)
       return false
     }
 
+    console.log('SendGrid API success')
     return true
   } catch (error) {
     console.error('SendGrid sending error:', error)
@@ -186,6 +227,8 @@ async function sendWithMailgun(to: string, subject: string, html: string, text: 
   }
 
   try {
+    console.log('Sending email via Mailgun API...')
+    
     const formData = new FormData()
     formData.append('from', `${FROM_NAME} <${FROM_EMAIL}>`)
     formData.append('to', to)
@@ -201,12 +244,16 @@ async function sendWithMailgun(to: string, subject: string, html: string, text: 
       body: formData,
     })
 
+    console.log('Mailgun API response status:', response.status)
+
     if (!response.ok) {
       const errorData = await response.text()
       console.error('Mailgun API error:', errorData)
       return false
     }
 
+    const responseData = await response.json()
+    console.log('Mailgun API success:', responseData)
     return true
   } catch (error) {
     console.error('Mailgun sending error:', error)
@@ -237,6 +284,13 @@ function generateEmailHTML(code: string, type: string): string {
           max-width: 600px;
           margin: 0 auto;
           padding: 20px;
+          background-color: #f8fafc;
+        }
+        .container {
+          background-color: white;
+          border-radius: 12px;
+          padding: 40px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         .header {
           text-align: center;
@@ -245,24 +299,40 @@ function generateEmailHTML(code: string, type: string): string {
           margin-bottom: 30px;
         }
         .logo {
-          font-size: 24px;
+          font-size: 28px;
           font-weight: bold;
           color: #2563EB;
+          margin-bottom: 8px;
+        }
+        .tagline {
+          color: #64748B;
+          font-size: 16px;
         }
         .code-container {
-          background: #F8FAFC;
-          border: 2px solid #E2E8F0;
-          border-radius: 12px;
+          background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+          border: 2px solid #2563EB;
+          border-radius: 16px;
           padding: 30px;
           text-align: center;
           margin: 30px 0;
         }
         .code {
-          font-size: 36px;
+          font-size: 42px;
           font-weight: bold;
           color: #2563EB;
           letter-spacing: 8px;
-          margin: 10px 0;
+          margin: 15px 0;
+          font-family: 'Courier New', monospace;
+        }
+        .code-label {
+          color: #1E40AF;
+          font-weight: 600;
+          margin-bottom: 10px;
+        }
+        .code-instruction {
+          color: #3730A3;
+          font-size: 14px;
+          margin-top: 10px;
         }
         .warning {
           background: #FEF3C7;
@@ -279,35 +349,42 @@ function generateEmailHTML(code: string, type: string): string {
           color: #64748B;
           font-size: 14px;
         }
+        .footer-logo {
+          color: #2563EB;
+          font-weight: 600;
+        }
       </style>
     </head>
     <body>
-      <div class="header">
-        <div class="logo">🛡️ S.A.F.E. Meds</div>
-        <p>Medication Safety Dashboard</p>
-      </div>
-      
-      <h1>${title}</h1>
-      <p>${message}</p>
-      
-      <div class="code-container">
-        <p>Your verification code is:</p>
-        <div class="code">${code}</div>
-        <p>Enter this code in the app to continue.</p>
-      </div>
-      
-      <div class="warning">
-        <strong>⚠️ Important:</strong>
-        <ul>
-          <li>This code expires in 10 minutes</li>
-          <li>Don't share this code with anyone</li>
-          <li>If you didn't request this, please ignore this email</li>
-        </ul>
-      </div>
-      
-      <div class="footer">
-        <p>This email was sent by S.A.F.E. Meds</p>
-        <p>If you have any questions, please contact our support team.</p>
+      <div class="container">
+        <div class="header">
+          <div class="logo">🛡️ S.A.F.E. Meds</div>
+          <div class="tagline">Medication Safety Dashboard</div>
+        </div>
+        
+        <h1>${title}</h1>
+        <p>${message}</p>
+        
+        <div class="code-container">
+          <div class="code-label">Your verification code is:</div>
+          <div class="code">${code}</div>
+          <div class="code-instruction">Enter this code in the app to continue</div>
+        </div>
+        
+        <div class="warning">
+          <strong>⚠️ Important:</strong>
+          <ul>
+            <li>This code expires in 10 minutes</li>
+            <li>Don't share this code with anyone</li>
+            <li>If you didn't request this, please ignore this email</li>
+          </ul>
+        </div>
+        
+        <div class="footer">
+          <div class="footer-logo">S.A.F.E. Meds</div>
+          <p>This email was sent by S.A.F.E. Meds</p>
+          <p>If you have any questions, please contact our support team.</p>
+        </div>
       </div>
     </body>
     </html>

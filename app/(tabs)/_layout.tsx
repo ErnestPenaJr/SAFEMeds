@@ -1,11 +1,12 @@
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
-import { Chrome as Home, Pill, Calendar, User, FileText, Users } from 'lucide-react-native';
+import { Platform, View } from 'react-native';
+import { Home, Pill, Calendar, User, FileText, Users } from 'lucide-react-native';
 import { AuthGuard } from '@/components/AuthGuard';
 import { OfflineNotice } from '@/components/OfflineNotice';
-import { View } from 'react-native';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useAuth } from '@/hooks/useAuth';
+import { DesignSystem } from '@/constants/DesignSystem';
+import { BlurView } from 'expo-blur';
 
 export default function TabLayout() {
   const { isDesktop } = useResponsive();
@@ -18,19 +19,38 @@ export default function TabLayout() {
         <Tabs
           screenOptions={{
             headerShown: false,
-            tabBarActiveTintColor: '#2563EB',
-            tabBarInactiveTintColor: '#64748B',
+            tabBarActiveTintColor: DesignSystem.colors.primary.blue,
+            tabBarInactiveTintColor: DesignSystem.colors.text.secondary,
             tabBarStyle: {
-              backgroundColor: '#FFFFFF',
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
               borderTopWidth: 1,
-              borderTopColor: '#E2E8F0',
+              borderTopColor: DesignSystem.colors.interactive.border,
               height: isDesktop ? 72 : Platform.OS === 'ios' ? 88 : 64,
               paddingBottom: isDesktop ? 12 : Platform.OS === 'ios' ? 20 : 8,
               paddingTop: isDesktop ? 12 : 8,
               paddingHorizontal: isDesktop ? 24 : 0,
+              borderTopLeftRadius: DesignSystem.borderRadius.xl,
+              borderTopRightRadius: DesignSystem.borderRadius.xl,
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              ...DesignSystem.shadows.card,
             },
+            tabBarBackground: () => (
+              <BlurView 
+                intensity={20} 
+                tint="light" 
+                style={{ 
+                  flex: 1,
+                  borderTopLeftRadius: DesignSystem.borderRadius.xl,
+                  borderTopRightRadius: DesignSystem.borderRadius.xl,
+                  overflow: 'hidden',
+                }} 
+              />
+            ),
             tabBarLabelStyle: {
-              fontFamily: 'Inter-Medium',
+              fontFamily: DesignSystem.typography.fontFamilies.primaryMedium,
               fontSize: isDesktop ? 14 : 12,
               marginTop: isDesktop ? 4 : 0,
             },

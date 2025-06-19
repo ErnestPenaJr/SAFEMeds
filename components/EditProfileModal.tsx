@@ -259,9 +259,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 18,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    minHeight: 56,
   },
   input: {
     flex: 1,
@@ -269,6 +270,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: '#1E293B',
+    paddingVertical: 0,
   },
   infoCard: {
     backgroundColor: '#FFFFFF',

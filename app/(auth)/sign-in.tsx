@@ -14,12 +14,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, router } from 'expo-router';
 import { Mail, Lock, Eye, EyeOff, CircleCheck as CheckCircle, Calendar, FileText } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { useAuth } from '@/hooks/useAuth';
 import { useResponsive } from '@/hooks/useResponsive';
+import { DesignSystem } from '@/constants/DesignSystem';
 import Svg, { Path, G } from 'react-native-svg';
 
 // Custom S.A.F.E. Meds Logo Component
-function SafeMedsLogo({ size = 48, color = "#2563EB" }: { size?: number; color?: string }) {
+function SafeMedsLogo({ size = 48, color = "#4A90E2" }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 871 870" style={{ fillRule: 'evenodd' }}>
       <G transform="matrix(2.08012,0,0,2.08012,-682.116,-291.637)">
@@ -65,241 +68,113 @@ export default function SignInScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563EB" />
-      </View>
+      <LinearGradient
+        colors={['#667eea', '#764ba2']}
+        style={styles.loadingContainer}
+      >
+        <ActivityIndicator size="large" color="#FFFFFF" />
+      </LinearGradient>
     );
   }
 
   // Mobile layout
   if (screenSize.isMobile) {
     return (
-      <SafeAreaView style={styles.container}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardView}
-        >
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
+      <LinearGradient
+        colors={['#667eea', '#764ba2']}
+        style={styles.container}
+      >
+        <SafeAreaView style={styles.safeArea}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.keyboardView}
           >
-            <View style={styles.header}>
-              <View style={styles.logoContainer}>
-                <SafeMedsLogo size={48} color="#2563EB" />
-              </View>
-              <Text style={styles.title}>Welcome Back</Text>
-              <Text style={styles.subtitle}>Sign in to S.A.F.E. Meds</Text>
-            </View>
-
-            <View style={styles.form}>
-              {error ? (
-                <View style={styles.errorContainer}>
-                  <Text style={styles.errorText}>{error}</Text>
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.header}>
+                <View style={styles.logoContainer}>
+                  <SafeMedsLogo size={48} color="#FFFFFF" />
                 </View>
-              ) : null}
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email Address</Text>
-                <View style={styles.inputContainer}>
-                  <Mail size={20} color="#64748B" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your email"
-                    value={formData.email}
-                    onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    placeholderTextColor="#94A3B8"
-                  />
-                </View>
+                <Text style={styles.title}>Welcome Back</Text>
+                <Text style={styles.subtitle}>Sign in to S.A.F.E. Meds</Text>
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Password</Text>
-                <View style={styles.inputContainer}>
-                  <Lock size={20} color="#64748B" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your password"
-                    value={formData.password}
-                    onChangeText={(text) => setFormData(prev => ({ ...prev, password: text }))}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    placeholderTextColor="#94A3B8"
-                  />
-                  <TouchableOpacity
-                    onPress={() => setShowPassword(!showPassword)}
-                    style={styles.eyeButton}
-                  >
-                    {showPassword ? (
-                      <EyeOff size={20} color="#64748B" />
-                    ) : (
-                      <Eye size={20} color="#64748B" />
-                    )}
-                  </TouchableOpacity>
-                </View>
+              <View style={styles.formContainer}>
+                <BlurView intensity={20} tint="light" style={styles.formBlur}>
+                  <View style={styles.form}>
+                    {error ? (
+                      <View style={styles.errorContainer}>
+                        <Text style={styles.errorText}>{error}</Text>
+                      </View>
+                    ) : null}
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Email Address</Text>
+                      <View style={styles.inputContainer}>
+                        <Mail size={20} color={DesignSystem.colors.text.secondary} />
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Enter your email"
+                          value={formData.email}
+                          onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          placeholderTextColor={DesignSystem.colors.text.muted}
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Password</Text>
+                      <View style={styles.inputContainer}>
+                        <Lock size={20} color={DesignSystem.colors.text.secondary} />
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Enter your password"
+                          value={formData.password}
+                          onChangeText={(text) => setFormData(prev => ({ ...prev, password: text }))}
+                          secureTextEntry={!showPassword}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          placeholderTextColor={DesignSystem.colors.text.muted}
+                        />
+                        <TouchableOpacity
+                          onPress={() => setShowPassword(!showPassword)}
+                          style={styles.eyeButton}
+                        >
+                          {showPassword ? (
+                            <EyeOff size={20} color={DesignSystem.colors.text.secondary} />
+                          ) : (
+                            <Eye size={20} color={DesignSystem.colors.text.secondary} />
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.forgotPassword}
+                      onPress={() => router.push('/(auth)/forgot-password')}
+                    >
+                      <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.signInButton, isSubmitting && styles.signInButtonDisabled]}
+                      onPress={handleSignIn}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.signInButtonText}>Sign In</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </BlurView>
               </View>
-
-              <TouchableOpacity
-                style={styles.forgotPassword}
-                onPress={() => router.push('/(auth)/forgot-password')}
-              >
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.signInButton, isSubmitting && styles.signInButtonDisabled]}
-                onPress={handleSignIn}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.signInButtonText}>Sign In</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>
-                Don't have an account?{' '}
-                <Link href="/(auth)/sign-up" style={styles.footerLink}>
-                  Sign Up
-                </Link>
-              </Text>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    );
-  }
-
-  // Desktop/Tablet layout
-  return (
-    <SafeAreaView style={styles.desktopContainer}>
-      <View style={styles.desktopLayout}>
-        {/* Left side - Hero section */}
-        <View style={styles.heroSection}>
-          <View style={styles.heroOverlay}>
-            <View style={styles.heroContent}>
-              <View style={styles.heroHeader}>
-                <View style={styles.heroLogoContainer}>
-                  <SafeMedsLogo size={40} color="#FFFFFF" />
-                </View>
-                <Text style={styles.heroTitle}>S.A.F.E. Meds</Text>
-                <Text style={styles.heroSubtitle}>Medication Safety Dashboard</Text>
-              </View>
-
-              <View style={styles.heroFeatures}>
-                <Text style={styles.heroFeaturesTitle}>Why Choose S.A.F.E. Meds?</Text>
-                
-                <View style={styles.featureItem}>
-                  <CheckCircle size={20} color="#10B981" />
-                  <Text style={styles.featureText}>Advanced drug interaction checking</Text>
-                </View>
-                
-                <View style={styles.featureItem}>
-                  <Calendar size={20} color="#10B981" />
-                  <Text style={styles.featureText}>Smart medication scheduling</Text>
-                </View>
-                
-                <View style={styles.featureItem}>
-                  <FileText size={20} color="#10B981" />
-                  <Text style={styles.featureText}>Comprehensive health reports</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-          
-          <Image
-            source={{ uri: 'https://images.pexels.com/photos/3683074/pexels-photo-3683074.jpeg?auto=compress&cs=tinysrgb&w=1200' }}
-            style={styles.heroImage}
-            resizeMode="cover"
-          />
-        </View>
-
-        {/* Right side - Sign in form */}
-        <View style={styles.formSection}>
-          <ScrollView
-            contentContainerStyle={styles.formScrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.formHeader}>
-              <Text style={styles.formTitle}>Welcome Back</Text>
-              <Text style={styles.formSubtitle}>Please enter your details to sign in</Text>
-            </View>
-
-            {error ? (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
-
-            <View style={styles.formContent}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email Address</Text>
-                <View style={styles.inputContainer}>
-                  <Mail size={20} color="#64748B" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your email"
-                    value={formData.email}
-                    onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    placeholderTextColor="#94A3B8"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Password</Text>
-                <View style={styles.inputContainer}>
-                  <Lock size={20} color="#64748B" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your password"
-                    value={formData.password}
-                    onChangeText={(text) => setFormData(prev => ({ ...prev, password: text }))}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    placeholderTextColor="#94A3B8"
-                  />
-                  <TouchableOpacity
-                    onPress={() => setShowPassword(!showPassword)}
-                    style={styles.eyeButton}
-                  >
-                    {showPassword ? (
-                      <EyeOff size={20} color="#64748B" />
-                    ) : (
-                      <Eye size={20} color="#64748B" />
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={styles.forgotPassword}
-                onPress={() => router.push('/(auth)/forgot-password')}
-              >
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.signInButton, isSubmitting && styles.signInButtonDisabled]}
-                onPress={handleSignIn}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.signInButtonText}>Sign In</Text>
-                )}
-              </TouchableOpacity>
 
               <View style={styles.footer}>
                 <Text style={styles.footerText}>
@@ -309,146 +184,302 @@ export default function SignInScreen() {
                   </Link>
                 </Text>
               </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
+
+  // Desktop/Tablet layout
+  return (
+    <LinearGradient
+      colors={['#667eea', '#764ba2']}
+      style={styles.desktopContainer}
+    >
+      <SafeAreaView style={styles.desktopSafeArea}>
+        <View style={styles.desktopLayout}>
+          {/* Left side - Hero section */}
+          <View style={styles.heroSection}>
+            <View style={styles.heroContent}>
+              <View style={styles.heroHeader}>
+                <View style={styles.heroLogoContainer}>
+                  <SafeMedsLogo size={64} color="#FFFFFF" />
+                </View>
+                <Text style={styles.heroTitle}>S.A.F.E. Meds</Text>
+                <Text style={styles.heroSubtitle}>Medication Safety Dashboard</Text>
+              </View>
+
+              <View style={styles.heroFeatures}>
+                <Text style={styles.heroFeaturesTitle}>Why Choose S.A.F.E. Meds?</Text>
+                
+                <View style={styles.featureItem}>
+                  <CheckCircle size={24} color="#10B981" />
+                  <Text style={styles.featureText}>Advanced drug interaction checking</Text>
+                </View>
+                
+                <View style={styles.featureItem}>
+                  <Calendar size={24} color="#10B981" />
+                  <Text style={styles.featureText}>Smart medication scheduling</Text>
+                </View>
+                
+                <View style={styles.featureItem}>
+                  <FileText size={24} color="#10B981" />
+                  <Text style={styles.featureText}>Comprehensive health reports</Text>
+                </View>
+              </View>
             </View>
-          </ScrollView>
+          </View>
+
+          {/* Right side - Sign in form */}
+          <View style={styles.formSection}>
+            <BlurView intensity={20} tint="light" style={styles.formBlurDesktop}>
+              <ScrollView
+                contentContainerStyle={styles.formScrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.formHeader}>
+                  <Text style={styles.formTitle}>Welcome Back</Text>
+                  <Text style={styles.formSubtitle}>Please enter your details to sign in</Text>
+                </View>
+
+                {error ? (
+                  <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
+                  </View>
+                ) : null}
+
+                <View style={styles.formContent}>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Email Address</Text>
+                    <View style={styles.inputContainer}>
+                      <Mail size={20} color={DesignSystem.colors.text.secondary} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Enter your email"
+                        value={formData.email}
+                        onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        placeholderTextColor={DesignSystem.colors.text.muted}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Password</Text>
+                    <View style={styles.inputContainer}>
+                      <Lock size={20} color={DesignSystem.colors.text.secondary} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Enter your password"
+                        value={formData.password}
+                        onChangeText={(text) => setFormData(prev => ({ ...prev, password: text }))}
+                        secureTextEntry={!showPassword}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        placeholderTextColor={DesignSystem.colors.text.muted}
+                      />
+                      <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                        style={styles.eyeButton}
+                      >
+                        {showPassword ? (
+                          <EyeOff size={20} color={DesignSystem.colors.text.secondary} />
+                        ) : (
+                          <Eye size={20} color={DesignSystem.colors.text.secondary} />
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.forgotPassword}
+                    onPress={() => router.push('/(auth)/forgot-password')}
+                  >
+                    <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.signInButton, isSubmitting && styles.signInButtonDisabled]}
+                    onPress={handleSignIn}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.signInButtonText}>Sign In</Text>
+                    )}
+                  </TouchableOpacity>
+
+                  <View style={styles.footer}>
+                    <Text style={styles.footerText}>
+                      Don't have an account?{' '}
+                      <Link href="/(auth)/sign-up" style={styles.footerLink}>
+                        Sign Up
+                      </Link>
+                    </Text>
+                  </View>
+                </View>
+              </ScrollView>
+            </BlurView>
+          </View>
         </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  // Mobile styles
+  // Common styles
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+  },
+  safeArea: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
   },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 32,
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingVertical: DesignSystem.spacing.xxl,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: DesignSystem.spacing.xxxl,
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#EFF6FF',
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: DesignSystem.spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   title: {
-    fontSize: 28,
-    fontFamily: 'Inter-Bold',
-    color: '#1E293B',
-    marginBottom: 8,
+    fontSize: DesignSystem.typography.sizes.hero,
+    fontFamily: DesignSystem.typography.fontFamilies.display,
+    color: DesignSystem.colors.text.onDark,
+    marginBottom: DesignSystem.spacing.sm,
   },
   subtitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#64748B',
+    fontSize: DesignSystem.typography.sizes.body,
+    fontFamily: DesignSystem.typography.fontFamilies.primary,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  formContainer: {
+    borderRadius: DesignSystem.borderRadius.xl,
+    overflow: 'hidden',
+    marginBottom: DesignSystem.spacing.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    ...DesignSystem.shadows.card,
+  },
+  formBlur: {
+    padding: DesignSystem.spacing.lg,
   },
   form: {
     flex: 1,
   },
   errorContainer: {
     backgroundColor: '#FEF2F2',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+    borderRadius: DesignSystem.borderRadius.md,
+    padding: DesignSystem.spacing.md,
+    marginBottom: DesignSystem.spacing.lg,
     borderLeftWidth: 4,
     borderLeftColor: '#EF4444',
   },
   errorText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
+    fontSize: DesignSystem.typography.sizes.caption,
+    fontFamily: DesignSystem.typography.fontFamilies.primaryMedium,
     color: '#DC2626',
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: DesignSystem.spacing.lg,
   },
   label: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#1E293B',
-    marginBottom: 8,
+    fontSize: DesignSystem.typography.sizes.caption,
+    fontFamily: DesignSystem.typography.fontFamilies.primarySemiBold,
+    color: DesignSystem.colors.text.primary,
+    marginBottom: DesignSystem.spacing.sm,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: DesignSystem.borderRadius.md,
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.md,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   input: {
     flex: 1,
-    marginLeft: 12,
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#1E293B',
+    marginLeft: DesignSystem.spacing.md,
+    fontSize: DesignSystem.typography.sizes.body,
+    fontFamily: DesignSystem.typography.fontFamilies.primary,
+    color: DesignSystem.colors.text.primary,
   },
   eyeButton: {
-    padding: 4,
+    padding: DesignSystem.spacing.xs,
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    marginBottom: 32,
+    marginBottom: DesignSystem.spacing.xl,
   },
   forgotPasswordText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#2563EB',
+    fontSize: DesignSystem.typography.sizes.caption,
+    fontFamily: DesignSystem.typography.fontFamilies.primaryMedium,
+    color: DesignSystem.colors.primary.blue,
   },
   signInButton: {
-    backgroundColor: '#2563EB',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: DesignSystem.colors.primary.blue,
+    borderRadius: DesignSystem.borderRadius.md,
+    paddingVertical: DesignSystem.spacing.md,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: DesignSystem.spacing.lg,
+    ...DesignSystem.shadows.button,
   },
   signInButtonDisabled: {
     opacity: 0.6,
   },
   signInButtonText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
+    fontSize: DesignSystem.typography.sizes.body,
+    fontFamily: DesignSystem.typography.fontFamilies.primarySemiBold,
+    color: DesignSystem.colors.text.onDark,
   },
   footer: {
     alignItems: 'center',
-    paddingTop: 24,
+    paddingTop: DesignSystem.spacing.lg,
   },
   footerText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#64748B',
+    fontSize: DesignSystem.typography.sizes.caption,
+    fontFamily: DesignSystem.typography.fontFamilies.primary,
+    color: DesignSystem.colors.text.onDark,
   },
   footerLink: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#2563EB',
+    fontSize: DesignSystem.typography.sizes.caption,
+    fontFamily: DesignSystem.typography.fontFamilies.primarySemiBold,
+    color: '#FFFFFF',
   },
 
   // Desktop/Tablet styles
   desktopContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+  },
+  desktopSafeArea: {
+    flex: 1,
   },
   desktopLayout: {
     flex: 1,
@@ -458,100 +489,101 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
     minHeight: '100%',
-  },
-  heroImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100%',
-    height: '100%',
-  },
-  heroOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(37, 99, 235, 0.85)',
-    zIndex: 1,
+    justifyContent: 'center',
   },
   heroContent: {
     flex: 1,
-    padding: 48,
+    padding: DesignSystem.spacing.xxxl,
     justifyContent: 'space-between',
     zIndex: 2,
   },
   heroHeader: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   heroLogoContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: DesignSystem.spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   heroTitle: {
-    fontSize: 36,
-    fontFamily: 'Inter-Bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
+    fontSize: 42,
+    fontFamily: DesignSystem.typography.fontFamilies.display,
+    color: DesignSystem.colors.text.onDark,
+    marginBottom: DesignSystem.spacing.sm,
+    textAlign: 'center',
   },
   heroSubtitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-Regular',
+    fontSize: DesignSystem.typography.sizes.subtitle,
+    fontFamily: DesignSystem.typography.fontFamilies.primary,
     color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 48,
+    marginBottom: DesignSystem.spacing.xxxl,
+    textAlign: 'center',
   },
   heroFeatures: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   heroFeaturesTitle: {
-    fontSize: 24,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-    marginBottom: 32,
+    fontSize: DesignSystem.typography.sizes.title,
+    fontFamily: DesignSystem.typography.fontFamilies.primarySemiBold,
+    color: DesignSystem.colors.text.onDark,
+    marginBottom: DesignSystem.spacing.xl,
+    textAlign: 'center',
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: DesignSystem.spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    padding: DesignSystem.spacing.md,
+    borderRadius: DesignSystem.borderRadius.md,
+    width: '80%',
   },
   featureText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#FFFFFF',
-    marginLeft: 12,
+    fontSize: DesignSystem.typography.sizes.body,
+    fontFamily: DesignSystem.typography.fontFamilies.primary,
+    color: DesignSystem.colors.text.onDark,
+    marginLeft: DesignSystem.spacing.md,
   },
   formSection: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
     maxWidth: 500,
+    padding: DesignSystem.spacing.xl,
+    justifyContent: 'center',
+  },
+  formBlurDesktop: {
+    flex: 1,
+    borderRadius: DesignSystem.borderRadius.xl,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    ...DesignSystem.shadows.card,
   },
   formScrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 48,
-    paddingVertical: 48,
+    padding: DesignSystem.spacing.xl,
   },
   formHeader: {
-    marginBottom: 40,
+    marginBottom: DesignSystem.spacing.xl,
   },
   formTitle: {
-    fontSize: 32,
-    fontFamily: 'Inter-Bold',
-    color: '#1E293B',
-    marginBottom: 8,
+    fontSize: DesignSystem.typography.sizes.hero,
+    fontFamily: DesignSystem.typography.fontFamilies.display,
+    color: DesignSystem.colors.text.primary,
+    marginBottom: DesignSystem.spacing.sm,
   },
   formSubtitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#64748B',
+    fontSize: DesignSystem.typography.sizes.body,
+    fontFamily: DesignSystem.typography.fontFamilies.primary,
+    color: DesignSystem.colors.text.secondary,
   },
   formContent: {
     flex: 1,
